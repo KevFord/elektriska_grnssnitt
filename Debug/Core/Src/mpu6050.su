@@ -1,0 +1,5 @@
+mpu6050.c:26:6:LCD_Debug	16	static
+mpu6050.c:34:6:MPU6050_Init	32	static
+mpu6050.c:49:6:MPU6050_WriteRegister	48	static
+mpu6050.c:62:6:MPU6050_ReadRegister	48	static
+mpu6050.c:73:6:MPU6050_ReadRegisters	48	static

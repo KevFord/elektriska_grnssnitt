@@ -1,0 +1,11 @@
+lcd.c:12:6:min_Delay	24	static
+lcd.c:20:6:TextLCD_Strobe	24	static
+lcd.c:33:6:TextLCD_Cmd	24	static
+lcd.c:44:6:TextLCD_Data	24	static
+lcd.c:55:6:TextLCD_Init	32	static
+lcd.c:83:6:TextLCD_Home	16	static
+lcd.c:89:6:TextLCD_Clear	16	static
+lcd.c:95:6:TextLCD_Position	32	static
+lcd.c:103:6:TextLCD_Putchar	16	static
+lcd.c:109:6:TextLCD_Putnr	16	static
+lcd.c:115:6:TextLCD_Puts	24	static

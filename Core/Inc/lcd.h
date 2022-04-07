@@ -1,0 +1,31 @@
+/*
+ * lcd.h
+ *
+ *  Created on: Apr 27, 2021
+ *      Author: axeand
+ */
+
+#ifndef INC_LCD_H_
+#define INC_LCD_H_
+#include "main.h"
+
+typedef struct
+{
+	I2C_HandleTypeDef *hi2c;
+	uint8_t DevAddress;
+	uint8_t data;
+
+} TextLCDType;
+
+void TextLCD_Init(TextLCDType *lcd, I2C_HandleTypeDef *hi2c, uint8_t DevAddress);
+void TextLCD_Cmd(TextLCDType *lcd, uint8_t cmd); // saknades, skall den vara här?
+void TextLCD_Home(TextLCDType *lcd);
+void TextLCD_Clear(TextLCDType *lcd);
+void TextLCD_Position(TextLCDType *lcd, int x, int y);
+void TextLCD_Putchar(TextLCDType *lcd, uint8_t data);
+void TextLCD_Putnr(TextLCDType *lcd, uint8_t data);
+void TextLCD_Puts(TextLCDType *lcd, char *string);
+//void TextLCD_Printf(TextLCDType *lcd, char *message, …);
+void min_Delay(uint32_t Delay);
+
+#endif /* INC_LCD_H_ */
