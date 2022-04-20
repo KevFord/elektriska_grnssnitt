@@ -18,14 +18,16 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
+#include <mpu.h>
 #include "main.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "lcd.h"
-#include "mpu6050.h"
 #include <string.h>
 #include <stdio.h>
+#include "ssd1306.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -56,13 +58,20 @@ PCD_HandleTypeDef hpcd_USB_FS;
 TextLCDType lcd;
 MPU6050_Type mpu;
 
+uint8_t Rec_Data[6];
+
+int16_t Accel_X_RAW;
+int16_t Accel_Y_RAW;
+int16_t Accel_Z_RAW;
+
 int16_t accelXValue;
 int16_t accelYValue;
 int16_t accelZValue;
 
-int16_t test;
-
 HAL_StatusTypeDef ret;
+
+uint8_t Data = 0;
+uint8_t check = 0;
 
 int value;
 
@@ -106,24 +115,59 @@ void displayLevel(){ // Displays how level the spirit level is.
 
 void checkLevel(){
 
-	MPU6050_WriteRegister(&mpu, SMPLRT_DIV, 1, 1);
+	ret = MPU6050_ReadRegisters(&mpu, ACCEL_XOUT_H, 6);
+	if(ret != HAL_OK)
+			LCD_Debug("Read error:", "ACCEL_XOUT_H");
 
-	MPU6050_ReadRegisters(&mpu, ACCEL_XOUT_H, 6);
+	Accel_X_RAW = (int16_t)(mpu.data[0] << 8 | mpu.data[1]); // Combine both registers into one value.
+	Accel_Y_RAW = (int16_t)(mpu.data[2] << 8 | mpu.data[3]); // Combine both registers into one value.
+	Accel_Z_RAW = (int16_t)(mpu.data[4] << 8 | mpu.data[5]); // Combine both registers into one value.
 
-	accelXValue = (0x0F & mpu.data[0] << 8) | mpu.data[1]; // Combine both registers into one value.
-	accelYValue = (0x0F & mpu.data[2] << 8) | mpu.data[3]; // Combine both registers into one value.
-	accelZValue = (0x0F & mpu.data[4] << 8) | mpu.data[5]; // Combine both registers into one value.
+	accelXValue = Accel_X_RAW/16384.0;  // get the float g
+	accelYValue = Accel_Y_RAW/16384.0;
+	accelZValue = Accel_Z_RAW/16384.0;
 
+//	if(accelXValue > 0x7FF){ // 2's complement.
+//		accelXValue |= 0xF000;
+//	}
+//	if(accelYValue > 0x7FF){ // 2's complement.
+//		accelYValue |= 0xF000;
+//	}
+//	if(accelZValue > 0x7FF){ // 2's complement.
+//		accelZValue |= 0xF000;
+//	}
+}
 
-	if(accelXValue > 0x7FF){ // 2's complement.
-		accelXValue |= 0xF000;
-	}
-	if(accelYValue > 0x7FF){ // 2's complement.
-		accelYValue |= 0xF000;
-	}
-	if(accelZValue > 0x7FF){ // 2's complement.
-		accelZValue |= 0xF000;
-	}
+void test(){
+
+	// Check connection.
+	HAL_I2C_Mem_Read (&hi2c1, MPU6050_ADDR,WHO_AM_I,1, &check, 1, 1000);
+
+	// power management register 0X6B we should write all 0's to wake the sensor up
+	Data = 0;
+	HAL_I2C_Mem_Write(&hi2c1, MPU6050_ADDR, PWR_MGMT_1, 1,&Data, 1, 1000);
+	// Set DATA RATE of 1KHz by writing SMPLRT_DIV register
+	Data = 0x07;
+	HAL_I2C_Mem_Write(&hi2c1, MPU6050_ADDR, SMPLRT_DIV, 1, &Data, 1, 1000);
+	// Setup accel configuration.
+	Data = 0;
+	HAL_I2C_Mem_Write(&hi2c1, MPU6050_ADDR, ACCEL_CONFIG, 1, &Data, 1, 1000);
+
+	// Read 6 BYTES of data starting from ACCEL_XOUT_H register
+	HAL_I2C_Mem_Read (&hi2c1, MPU6050_ADDR, ACCEL_XOUT_H, 1, Rec_Data, 6, 1000);
+
+	Accel_X_RAW = (int16_t)(Rec_Data[0] << 8 | Rec_Data [1]);
+	Accel_Y_RAW = (int16_t)(Rec_Data[2] << 8 | Rec_Data [3]);
+	Accel_Z_RAW = (int16_t)(Rec_Data[4] << 8 | Rec_Data [5]);
+
+	/*** convert the RAW values into acceleration in 'g'
+	     we have to divide according to the Full scale value set in FS_SEL
+	     I have configured FS_SEL = 0. So I am dividing by 16384.0
+	     for more details check ACCEL_CONFIG Register              ****/
+
+	accelXValue = Accel_X_RAW/16384.0;  // get the float g
+	accelYValue = Accel_Y_RAW/16384.0;
+	accelZValue = Accel_Z_RAW/16384.0;
 }
 
 /* USER CODE END 0 */
@@ -163,6 +207,8 @@ int main(void)
   /* USER CODE BEGIN 2 */
   TextLCD_Init(&lcd, &hi2c1, 0x4E); // "startar" LCD
   MPU6050_Init(&mpu, &hi2c1); // Setup the mpu sensor.
+  ssd1306_Init(); // OLED Init.
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -186,11 +232,33 @@ int main(void)
   while (1)
   {
 	  checkLevel();
-	  if(ret == HAL_OK)
-		  LCD_Debug("Loop is working!", "Loop is working!");
+//	  if(ret == HAL_OK)
+//		  LCD_Debug("HAL status is:", "HAL_OK");
 	  HAL_Delay(250);
+//	  test();
+	  char strX[10];
+	  char strY[10];
+	  char strZ[10];
 
+	  sprintf(strX, "%d", Accel_X_RAW);
+	  sprintf(strY, "%d", Accel_Y_RAW);
+	  sprintf(strZ, "%d", Accel_Z_RAW);
 
+	  ssd1306_SetDisplayOn(1);
+	  ssd1306_SetCursor(0, 0);
+	  ssd1306_WriteString("Accel X:", Font_6x8, White);
+	  ssd1306_SetCursor(0, 9);
+	  ssd1306_WriteString(strX, Font_6x8, White);
+	  ssd1306_SetCursor(0, 18);
+	  ssd1306_WriteString("Accel Y:", Font_6x8, White);
+	  ssd1306_SetCursor(0, 27);
+	  ssd1306_WriteString(strY, Font_6x8, White);
+	  ssd1306_SetCursor(0, 36);
+	  ssd1306_WriteString("Accel Z:", Font_6x8, White);
+	  ssd1306_SetCursor(0, 45);
+	  ssd1306_WriteString(strZ, Font_6x8, White);
+	  ssd1306_SetCursor(0, 54);
+	  ssd1306_UpdateScreen();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

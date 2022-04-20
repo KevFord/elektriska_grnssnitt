@@ -61,8 +61,8 @@ all: main-build
 main-build: el_grns_lab5.elf secondary-outputs
 
 # Tool invocations
-el_grns_lab5.elf: $(OBJS) $(USER_OBJS) C:\Users\Kevin\STM32CubeIDE\elektriska_grnssnitt\STM32WB55RGVX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "el_grns_lab5.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\Kevin\STM32CubeIDE\elektriska_grnssnitt\STM32WB55RGVX_FLASH.ld" --specs=nosys.specs -Wl,-Map="el_grns_lab5.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+el_grns_lab5.elf: $(OBJS) $(USER_OBJS) C:\STM_Projects\el_lab_5\elektriska_grnssnitt\STM32WB55RGVX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "el_grns_lab5.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\STM_Projects\el_lab_5\elektriska_grnssnitt\STM32WB55RGVX_FLASH.ld" --specs=nosys.specs -Wl,-Map="el_grns_lab5.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
