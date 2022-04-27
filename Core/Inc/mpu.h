@@ -19,6 +19,8 @@
 
 #define MPU6050_ADDR 0x68 << 1
 
+#define MPU_UPDATE_FREQ 200
+
 TextLCDType lcd; // Easier debug bodge.
 
 typedef struct{

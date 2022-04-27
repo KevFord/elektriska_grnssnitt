@@ -51,7 +51,7 @@ HAL_StatusTypeDef MPU6050_Init(MPU6050_Type *sensor, I2C_HandleTypeDef *hi2c) { 
 	if(ret != HAL_OK) // Check return value.
 		LCD_Debug("MPU INIT SMPLRT", "_DIV FAILED");
 
-	data = 0;
+	data = 0x00; // 0
 	ret = MPU6050_WriteRegister(sensor, ACCEL_CONFIG, data, 1);
 	if(ret != HAL_OK) // Check return value.
 		LCD_Debug("MPU INIT ACCEL", "CONFIG FAILED");
