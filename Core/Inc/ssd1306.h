@@ -16,6 +16,7 @@ _BEGIN_STD_C
 #include "ssd1306_conf.h"
 #include "stm32wbxx_hal.h"
 #include "ssd1306_fonts.h"
+#include "ssd1306_tests.h"
 
 /* vvv I2C config vvv */
 

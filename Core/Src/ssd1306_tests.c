@@ -296,3 +296,9 @@ void ssd1306_TestAll() {
     HAL_Delay(3000);
 }
 
+void drawGarfield(){
+    ssd1306_Fill(Black);
+	ssd1306_DrawBitmap(0, 0, garfield_128x64, 128, 64, White);
+	ssd1306_UpdateScreen();
+}
+

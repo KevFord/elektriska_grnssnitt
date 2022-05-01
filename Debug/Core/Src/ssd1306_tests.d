@@ -41,7 +41,8 @@ Core/Src/ssd1306_tests.o: ../Core/Src/ssd1306_tests.c \
  ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_hal_uart.h \
  ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_hal_uart_ex.h \
  ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_ll_system.h \
- ../Core/Inc/ssd1306_fonts.h ../Core/Inc/ssd1306_tests.h
+ ../Core/Inc/ssd1306_fonts.h ../Core/Inc/ssd1306_tests.h \
+ ../Core/Inc/ssd1306_tests.h
 
 ../Core/Inc/ssd1306.h:
 
@@ -130,5 +131,7 @@ Core/Src/ssd1306_tests.o: ../Core/Src/ssd1306_tests.c \
 ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_ll_system.h:
 
 ../Core/Inc/ssd1306_fonts.h:
+
+../Core/Inc/ssd1306_tests.h:
 
 ../Core/Inc/ssd1306_tests.h:

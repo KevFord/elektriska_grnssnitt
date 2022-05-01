@@ -18,7 +18,6 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
-#include <mpu.h>
 #include "main.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -27,6 +26,8 @@
 #include <string.h>
 #include <stdio.h>
 #include "ssd1306.h"
+#include "mpu.h"
+#include "math.h"
 
 /* USER CODE END Includes */
 
@@ -80,10 +81,6 @@ int16_t z_offset;
 
 int calibrate = 1;
 
-int value;
-
-int bubble = 7; // Defaults to centered.
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -100,26 +97,6 @@ static void MX_TIM1_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-void levelReset(){ // Reset the bubble to the center position, call from button interrupt?
-
-	bubble = 7; // Set the bubble in the middle of the spirit level. 0 - 15, 7 = middle.
-}
-
-void displayLevel(){ // Displays how level the spirit level is.
-
-	TextLCD_Home(&lcd); // Starting point.
-
-	TextLCD_Position(&lcd, bubble, 0); // First pixel, first row.
-	TextLCD_Putchar(&lcd, '0'); // Indicator.
-
-	TextLCD_Position(&lcd, bubble, 1); // First pixel, second row.
-	TextLCD_Putchar(&lcd, '^'); // Indicator.
-
-	HAL_Delay(200); // 5 Hz
-
-	TextLCD_Clear(&lcd); // Remove indicator.
-}
-
 void checkLevel(){
 
 	HAL_Delay(MPU_UPDATE_FREQ); // 5 Hz update frequency.
@@ -129,10 +106,10 @@ void checkLevel(){
 		LCD_Debug("Read error:", "ACCEL_XOUT_H");
 
 	Accel_X_RAW = (int16_t)(mpu.data[0] << 8 | mpu.data[1]); // Combine both registers into one value.
-	Accel_Y_RAW = (int16_t)(mpu.data[2] << 8 | mpu.data[3]); // Combine both registers into one value.
-	Accel_Z_RAW = (int16_t)(mpu.data[4] << 8 | mpu.data[5]); // Combine both registers into one value.
+	Accel_Y_RAW = (int16_t)(mpu.data[2] << 8 | mpu.data[3]);
+	Accel_Z_RAW = (int16_t)(mpu.data[4] << 8 | mpu.data[5]);
 
-	accelXValue = Accel_X_RAW / x_offset;  // get the float g 16384
+	accelXValue = Accel_X_RAW / x_offset; // Divide by the value from the calibration.
 	accelYValue = Accel_Y_RAW / y_offset;
 	accelZValue = Accel_Z_RAW / z_offset;
 
@@ -147,39 +124,7 @@ void checkLevel(){
 //	}
 }
 
-void test(){
-
-	// Check connection.
-	HAL_I2C_Mem_Read (&hi2c1, MPU6050_ADDR,WHO_AM_I,1, &check, 1, 1000);
-
-	// power management register 0X6B we should write all 0's to wake the sensor up
-	Data = 0;
-	HAL_I2C_Mem_Write(&hi2c1, MPU6050_ADDR, PWR_MGMT_1, 1,&Data, 1, 1000);
-	// Set DATA RATE of 1KHz by writing SMPLRT_DIV register
-	Data = 0x07;
-	HAL_I2C_Mem_Write(&hi2c1, MPU6050_ADDR, SMPLRT_DIV, 1, &Data, 1, 1000);
-	// Setup accel configuration.
-	Data = 0;
-	HAL_I2C_Mem_Write(&hi2c1, MPU6050_ADDR, ACCEL_CONFIG, 1, &Data, 1, 1000);
-
-	// Read 6 BYTES of data starting from ACCEL_XOUT_H register
-	HAL_I2C_Mem_Read (&hi2c1, MPU6050_ADDR, ACCEL_XOUT_H, 1, Rec_Data, 6, 1000);
-
-	Accel_X_RAW = (int16_t)(Rec_Data[0] << 8 | Rec_Data [1]);
-	Accel_Y_RAW = (int16_t)(Rec_Data[2] << 8 | Rec_Data [3]);
-	Accel_Z_RAW = (int16_t)(Rec_Data[4] << 8 | Rec_Data [5]);
-
-	/*** convert the RAW values into acceleration in 'g'
-	     we have to divide according to the Full scale value set in FS_SEL
-	     I have configured FS_SEL = 0. So I am dividing by 16384.0
-	     for more details check ACCEL_CONFIG Register              ****/
-
-	accelXValue = Accel_X_RAW/16384.0;  // get the float g
-	accelYValue = Accel_Y_RAW/16384.0;
-	accelZValue = Accel_Z_RAW/16384.0;
-}
-
-void displayResultsOLED(int16_t x_val, int16_t y_val, int16_t z_val){
+void displayResultsOLED(int16_t x_val, int16_t y_val, int16_t z_val){ // Displays the calibrated values as integers.
 
 	char strX[10];
 	char strY[10];
@@ -190,6 +135,7 @@ void displayResultsOLED(int16_t x_val, int16_t y_val, int16_t z_val){
 	sprintf(strZ, "%d", z_val);// / z_offset_calibrated));
 
 	ssd1306_SetDisplayOn(1);
+	ssd1306_Fill(Black);
 	ssd1306_SetCursor(0, 0);
 	ssd1306_WriteString("Accel X:", Font_6x8, White);
 	ssd1306_SetCursor(0, 9);
@@ -206,41 +152,84 @@ void displayResultsOLED(int16_t x_val, int16_t y_val, int16_t z_val){
 	ssd1306_UpdateScreen();
 }
 
+void displayLevel(int16_t axis_level){ // Displays the values as a "bubble".
+
+	int16_t tiltValue = (35 - axis_level); // Center the "bubble"
+
+	ssd1306_SetDisplayOn(1);
+	ssd1306_Fill(Black);
+
+	for(int i = 0; i < 70; i++){ // Display some lines to indicate tilt.
+		if(i % 5 == 0){
+			ssd1306_SetCursor(i, 34);
+			ssd1306_WriteString("|", Font_7x10, White);
+		}
+	}
+
+	ssd1306_SetCursor(tiltValue, 24); // Set the "bubble".
+	ssd1306_WriteString("O", Font_7x10, White);
+
+	if(axis_level > 20 || axis_level < -20) // Just to indicate a silly angle...
+		drawGarfield();
+	else ssd1306_UpdateScreen();
+}
+
+float resultInDegrees(int16_t z_axis, int16_t comparative_axis){
+
+	return (atan2(comparative_axis, z_axis) / 57.2957795);
+}
+
 void calibrateMPU(MPU6050_Type mpu6050){
 
+	// Arrays holding the different measurements:
 	int16_t x_values[NUMBER_OF_CALIBRATION_ITERATIONS];
 	int16_t y_values[NUMBER_OF_CALIBRATION_ITERATIONS];
 	int16_t z_values[NUMBER_OF_CALIBRATION_ITERATIONS];
 
+	// All measurements added together:
 	int16_t x_calibration;
 	int16_t y_calibration;
 	int16_t z_calibration;
 
+	// Fill with samples:
 	for(int i = 0; i < NUMBER_OF_CALIBRATION_ITERATIONS; i++){
 		x_values[i] = Accel_X_RAW;
 		y_values[i] = Accel_Y_RAW;
 		z_values[i] = Accel_Z_RAW;
 	}
-
 	for(int i = 0; i < NUMBER_OF_CALIBRATION_ITERATIONS; i++){
-
 		x_calibration += x_values[i];
 		y_calibration += y_values[i];
 		z_calibration += z_values[i];
 	}
 
+	// Perform the calibration, divide to find the mean value.
 	x_offset = x_calibration / NUMBER_OF_CALIBRATION_ITERATIONS;
 	y_offset = y_calibration / NUMBER_OF_CALIBRATION_ITERATIONS;
 	z_offset = z_calibration / NUMBER_OF_CALIBRATION_ITERATIONS;
 
+	// To preserve the sanctity of the universe, we ensure we do not divide by zero.
 	if(x_offset == 0)
 		x_offset = 1;
 	if(y_offset == 0)
 		y_offset = 1;
 	if(z_offset == 0)
 		z_offset = 1;
+
+	// Let the user know that the device is being calibrated.
+	ssd1306_SetDisplayOn(1);
+	ssd1306_Fill(Black);
+	ssd1306_SetCursor(0, 0);
+	ssd1306_WriteString("Calibrating...", Font_7x10, White);
+	ssd1306_UpdateScreen();
+	HAL_Delay(500); // A small delay so the user has time to read the text.
 }
 
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
+
+	if(GPIO_Pin == TOUCH_BTN_Pin)
+		calibrate = 1;
+}
 /* USER CODE END 0 */
 
 /**
@@ -279,35 +268,22 @@ int main(void)
   TextLCD_Init(&lcd, &hi2c1, 0x4E); // "startar" LCD
   MPU6050_Init(&mpu, &hi2c1); // Setup the mpu sensor.
   ssd1306_Init(); // OLED Init.
+
+  float deg;
+  char* str;
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  /* Register address macros:
-
-  	WHO_AM_I
-  	PWR_MGMT_1
-  	SMPLRT_DIV
-  	ACCEL_XOUT_H
-  	ACCEL_XOUT_L
-  	ACCEL_YOUT_H
-  	ACCEL_YOUT_L
-  	ACCEL_ZOUT_H
-  	ACCEL_ZOUT_L
-
-  	MPU6050 slave address: Binary: 1101001 / 1101000. Hex: 69 / 68. Pin AD0 hi / lo.
-
-  */
-
   while (1)
   {
-	  while(calibrate == 1){
-		  calibrateMPU(mpu);
-		  calibrate = 0;
+	  while(calibrate == 1){ // Check calibration flag.
+		  calibrateMPU(mpu); // Calibrate if necessary.
+		  calibrate = 0; // Reset the flag.
 	  }
-	  checkLevel();
-	  displayResultsOLED(accelXValue, accelYValue, accelZValue);
-
+	  checkLevel(); // Take in readings from the MPU, reads x, y and z axis and combines
+//	  displayResultsOLED(accelXValue, accelYValue, accelZValue); // Displays the results as integers.
+	  displayLevel(accelYValue); // Displays the result in a spirit level like fashion.
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -589,6 +565,12 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, LD2_Pin|LD3_Pin|LD1_Pin, GPIO_PIN_RESET);
 
+  /*Configure GPIO pin : TOUCH_BTN_Pin */
+  GPIO_InitStruct.Pin = TOUCH_BTN_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  HAL_GPIO_Init(TOUCH_BTN_GPIO_Port, &GPIO_InitStruct);
+
   /*Configure GPIO pin : B1_Pin */
   GPIO_InitStruct.Pin = B1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
@@ -607,6 +589,10 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI2_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI2_IRQn);
 
 }
 

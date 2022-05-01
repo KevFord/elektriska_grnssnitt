@@ -1,4 +1,4 @@
-Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/mpu.h ../Core/Inc/main.h \
+Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_hal.h \
  ../Core/Inc/stm32wbxx_hal_conf.h \
  ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_hal_dma.h \
@@ -40,11 +40,9 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/mpu.h ../Core/Inc/main.h \
  ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_hal_uart.h \
  ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_hal_uart_ex.h \
  ../Drivers/STM32WBxx_HAL_Driver/Inc/stm32wbxx_ll_system.h \
- ../Core/Inc/lcd.h ../Core/Inc/main.h ../Core/Inc/lcd.h \
- ../Core/Inc/ssd1306.h ../Core/Inc/ssd1306_conf.h \
- ../Core/Inc/ssd1306_fonts.h
-
-../Core/Inc/mpu.h:
+ ../Core/Inc/lcd.h ../Core/Inc/main.h ../Core/Inc/ssd1306.h \
+ ../Core/Inc/ssd1306_conf.h ../Core/Inc/ssd1306_fonts.h \
+ ../Core/Inc/ssd1306_tests.h ../Core/Inc/mpu.h ../Core/Inc/lcd.h
 
 ../Core/Inc/main.h:
 
@@ -134,10 +132,14 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/mpu.h ../Core/Inc/main.h \
 
 ../Core/Inc/main.h:
 
-../Core/Inc/lcd.h:
-
 ../Core/Inc/ssd1306.h:
 
 ../Core/Inc/ssd1306_conf.h:
 
 ../Core/Inc/ssd1306_fonts.h:
+
+../Core/Inc/ssd1306_tests.h:
+
+../Core/Inc/mpu.h:
+
+../Core/Inc/lcd.h:

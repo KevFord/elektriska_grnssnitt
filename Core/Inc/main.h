@@ -58,6 +58,9 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define TOUCH_BTN_Pin GPIO_PIN_2
+#define TOUCH_BTN_GPIO_Port GPIOC
+#define TOUCH_BTN_EXTI_IRQn EXTI2_IRQn
 #define B1_Pin GPIO_PIN_4
 #define B1_GPIO_Port GPIOC
 #define LD2_Pin GPIO_PIN_0
